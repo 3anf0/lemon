@@ -86,7 +86,7 @@ fun VoiceScreen(vm: VoiceViewModel = hiltViewModel()) {
                                     )
                                 ) {
                                     Text(
-                                        "✅ Marek jest gotowy!",
+                                        "✅ Lemon jest gotowy!",
                                         modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                         color      = Color(0xFF34C759),
                                         fontWeight = FontWeight.SemiBold
@@ -221,7 +221,7 @@ fun ChatBubble(message: VoiceMessage, isLive: Boolean = false) {
                     .background(AccentBlue),
                 contentAlignment = Alignment.Center
             ) {
-                Text("M", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("L", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
             Spacer(Modifier.width(8.dp))
         }
