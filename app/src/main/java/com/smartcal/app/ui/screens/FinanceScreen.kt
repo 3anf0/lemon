@@ -124,11 +124,26 @@ fun FinanceScreen(vm: FinanceViewModel = hiltViewModel()) {
                     }
                 }
             } else {
-                items(state.allTransactions) { tx ->
+                items(state.displayedTransactions) { tx ->
                     TransactionRow(
                         tx       = tx,
                         onDelete = { vm.deleteTransaction(tx.id) }
                     )
+                }
+
+                if (state.hasOlderTransactions || state.showFullHistory) {
+                    item {
+                        TextButton(
+                            onClick  = { vm.toggleFullHistory() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                if (state.showFullHistory) "Pokaż tylko ostatnie 90 dni ▲"
+                                else "Pokaż całą historię (${state.allTransactions.size} transakcji) ▼",
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
                 }
             }
 
