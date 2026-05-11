@@ -51,7 +51,7 @@ object DateParser {
             if (aliases.any { s.contains(it) }) {
                 val current = today.dayOfWeek.value   // 1=Mon … 7=Sun
                 var daysAhead = dayNum - current
-                if (daysAhead <= 0) daysAhead += 7   // always next occurrence
+                if (daysAhead < 0) daysAhead += 7    // past day → next occurrence; same day → today
                 if (nextWeek && daysAhead < 7) daysAhead += 7
                 return today.plusDays(daysAhead.toLong())
             }
