@@ -11,13 +11,24 @@ import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
+private const val RECENT_DAYS = 90L
+
 data class FinanceUiState(
     val allTransactions: List<Transaction> = emptyList(),
     val yesterdaySummary: PeriodSummary = PeriodSummary("Wczoraj", 0.0, 0.0),
     val lastMonthSummary: PeriodSummary = PeriodSummary("Poprzedni miesiąc", 0.0, 0.0),
     val currentMonthSummary: PeriodSummary = PeriodSummary("Ten miesiąc", 0.0, 0.0),
-    val isAddingTransaction: Boolean = false
-)
+    val isAddingTransaction: Boolean = false,
+    val showFullHistory: Boolean = false
+) {
+    val displayedTransactions: List<Transaction>
+        get() = if (showFullHistory) allTransactions
+                else allTransactions.filter {
+                    !it.date.isBefore(LocalDate.now().minusDays(RECENT_DAYS))
+                }
+    val hasOlderTransactions: Boolean
+        get() = allTransactions.size > displayedTransactions.size
+}
 
 @HiltViewModel
 class FinanceViewModel @Inject constructor(
@@ -83,4 +94,6 @@ class FinanceViewModel @Inject constructor(
     fun deleteTransaction(id: Long) = viewModelScope.launch { repo.deleteTransaction(id) }
 
     fun setAdding(show: Boolean) = _state.update { it.copy(isAddingTransaction = show) }
+
+    fun toggleFullHistory() = _state.update { it.copy(showFullHistory = !it.showFullHistory) }
 }
