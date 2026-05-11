@@ -43,7 +43,7 @@ fun EventCard(
         AlertDialog(
             onDismissRequest = { showConfirm = false },
             title = { Text("Usunąć wydarzenie?") },
-            text  = { Text("„${event.title}" zostanie trwale usunięte.") },
+            text  = { Text("„${event.title}\" zostanie trwale usunięte.") },
             confirmButton = {
                 Button(
                     onClick = { showConfirm = false; onDelete() },

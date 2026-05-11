@@ -303,7 +303,7 @@ fun TransactionRow(
         AlertDialog(
             onDismissRequest = { showConfirm = false },
             title = { Text("Usunąć transakcję?") },
-            text  = { Text("„${tx.title}" (${if (isIncome) "+" else "-"}${formatMoney(tx.amount)}) zostanie trwale usunięta.") },
+            text  = { Text("„${tx.title}\" (${if (isIncome) "+" else "-"}${formatMoney(tx.amount)}) zostanie trwale usunięta.") },
             confirmButton = {
                 Button(
                     onClick = { showConfirm = false; onDelete() },
