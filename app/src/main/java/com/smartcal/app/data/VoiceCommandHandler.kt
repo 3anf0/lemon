@@ -13,7 +13,8 @@ import javax.inject.Singleton
 @Singleton
 class VoiceCommandHandler @Inject constructor(
     private val financeRepository: FinanceRepository,
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
+    private val reminderManager: EventReminderManager
 ) {
 
     // ── Finance ───────────────────────────────────────────────────────────
@@ -87,12 +88,14 @@ class VoiceCommandHandler @Inject constructor(
         val date  = DateParser.parse(text) ?: LocalDate.now()
         val start = date.atTime(hour, minute)
 
-        eventRepository.addEvent(CalEvent(
+        val event = CalEvent(
             title     = eventTitle,
             startTime = start,
             endTime   = start.plusHours(1),
             category  = category
-        ))
+        )
+        val newId = eventRepository.addEvent(event)
+        reminderManager.schedule(event.copy(id = newId))
 
         val dateLabel = DateParser.formatPolish(date)
         return "$eventTitle dodano na $dateLabel o %02d:%02d!".format(hour, minute)
