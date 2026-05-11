@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +33,24 @@ fun EventCard(
 ) {
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val color = categoryColors[event.category] ?: MaterialTheme.colorScheme.primary
+    var showConfirm by remember { mutableStateOf(false) }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            title = { Text("Usunąć wydarzenie?") },
+            text  = { Text("„${event.title}" zostanie trwale usunięte.") },
+            confirmButton = {
+                Button(
+                    onClick = { showConfirm = false; onDelete() },
+                    colors  = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Usuń") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) { Text("Anuluj") }
+            }
+        )
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -86,7 +104,7 @@ fun EventCard(
                     )
                 }
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = { showConfirm = true }) {
                 Text("🗑️", fontSize = 16.sp)
             }
         }

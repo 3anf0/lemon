@@ -11,19 +11,18 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartcal.app.data.ClaudeApiClient
-import com.smartcal.app.data.KeywordMatcher
-import com.smartcal.app.data.KeywordMatcher.matchesAny
 import com.smartcal.app.data.DateParser
 import com.smartcal.app.data.EventRepository
 import com.smartcal.app.data.FinanceRepository
+import com.smartcal.app.data.VoiceCommandHandler
 import com.smartcal.app.data.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
-import java.time.format.DateTimeFormatter as DTF
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatter as DTF
 import java.util.Locale
 import javax.inject.Inject
 
@@ -48,7 +47,8 @@ class VoiceViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val geminiClient: ClaudeApiClient,
     private val eventRepository: EventRepository,
-    private val financeRepository: FinanceRepository
+    private val financeRepository: FinanceRepository,
+    private val voiceCommandHandler: VoiceCommandHandler
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(VoiceUiState())
@@ -146,7 +146,7 @@ class VoiceViewModel @Inject constructor(
 
     private fun processCommand(text: String) = viewModelScope.launch {
         // First try keyword-based finance detection (fast, no API needed)
-        val financeResult = tryHandleFinanceCommand(text)
+        val financeResult = voiceCommandHandler.handleFinance(text)
         if (financeResult != null) {
             addToHistory(financeResult, isUser = false)
             speak(financeResult)
@@ -215,56 +215,6 @@ class VoiceViewModel @Inject constructor(
                 addToHistory(msg, isUser = false); speak(msg)
                 _state.update { it.copy(isProcessing = false) }
             }
-    }
-
-    /**
-     * Detects finance commands by keywords and handles them directly.
-     * Returns a confirmation string if handled, null if not a finance command.
-     *
-     * Examples:
-     *   "dodaj przychód 500" → INCOME, WORK, 500 zł
-     *   "wydałem 50 na jedzenie" → EXPENSE, FOOD, 50 zł
-     *   "przegrałem 200 w kasynie" → EXPENSE, GAMBLING, 200 zł
-     *   "zarobiłem 3000" → INCOME, WORK, 3000 zł
-     */
-    private suspend fun tryHandleFinanceCommand(text: String): String? {
-        val s = text.lowercase()
-
-        // Detect if this is a finance command
-        val isIncome  = s.matchesAny(KeywordMatcher.INCOME_STEMS)
-        val isExpense = s.matchesAny(KeywordMatcher.EXPENSE_STEMS)
-        if (!isIncome && !isExpense) return null
-
-        // Extract amount
-        val amountRegex = Regex("""(\d+(?:[.,]\d{1,2})?)""")
-        val amountStr = amountRegex.find(s)?.groupValues?.get(1)?.replace(",", ".") ?: return null
-        val amount = amountStr.toDoubleOrNull() ?: return null
-        if (amount <= 0) return null
-
-        val category = when {
-            s.matchesAny(KeywordMatcher.FUEL_STEMS)     -> ExpenseCategory.FUEL
-            s.matchesAny(KeywordMatcher.GAMBLING_STEMS) -> ExpenseCategory.GAMBLING
-            s.matchesAny(KeywordMatcher.FOOD_STEMS)     -> ExpenseCategory.FOOD
-            s.matchesAny(KeywordMatcher.OTHER_STEMS)    -> ExpenseCategory.OTHER
-            else -> if (isIncome) ExpenseCategory.WORK else ExpenseCategory.OTHER
-        }
-        val title = KeywordMatcher.findTitle(s) ?: if (isIncome) "Przychód" else "Wydatek"
-
-        val type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE
-
-        // Use DateParser so "wydałem wczoraj 50" or "w poniedziałek kupiłem" works
-        val txDate = DateParser.parse(text) ?: LocalDate.now()
-        financeRepository.addTransaction(Transaction(
-            title    = title,
-            amount   = amount,
-            type     = type,
-            category = category,
-            date     = txDate
-        ))
-
-        val sign = if (type == TransactionType.INCOME) "+" else "-"
-        val typeWord = if (type == TransactionType.INCOME) "Przychód" else "Wydatek"
-        return "Zapisano! $typeWord $sign%.2f zł — $title (${category.label}) ✓".format(amount)
     }
 
     fun sendTextCommand(text: String) {

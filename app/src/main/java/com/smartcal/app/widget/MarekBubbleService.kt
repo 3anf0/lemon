@@ -17,15 +17,12 @@ import androidx.core.app.NotificationCompat
 import com.smartcal.app.MainActivity
 import com.smartcal.app.widget.MarekTileService
 import com.smartcal.app.R
-import com.smartcal.app.data.DateParser
-import com.smartcal.app.data.KeywordMatcher
-import com.smartcal.app.data.KeywordMatcher.matchesAny
 import com.smartcal.app.data.EventRepository
 import com.smartcal.app.data.FinanceRepository
+import com.smartcal.app.data.VoiceCommandHandler
 import com.smartcal.app.data.model.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
-import java.time.LocalDate
 import java.util.Locale
 import javax.inject.Inject
 
@@ -34,6 +31,7 @@ class MarekBubbleService : Service() {
 
     @Inject lateinit var eventRepository: EventRepository
     @Inject lateinit var financeRepository: FinanceRepository
+    @Inject lateinit var voiceCommandHandler: VoiceCommandHandler
 
     private lateinit var windowManager: WindowManager
     private var bubbleView: View? = null
@@ -206,100 +204,17 @@ class MarekBubbleService : Service() {
             return
         }
 
-        // Try finance command first (keyword-based, no API needed)
-        val financeHandled = tryHandleFinance(lower)
-        if (financeHandled) return
-
-        // Try calendar command
-        val calendarHandled = tryHandleCalendar(lower)
-        if (calendarHandled) return
-
-        // Unknown — give hint and listen again
-        speak("Nie rozumiem. Spróbuj np: dodaj siłownię o 18 albo zarobiłem 500")
-        mainHandler.postDelayed({ startListening() }, 3000)
-    }
-
-    // ── Finance — saves directly to Room ─────────────────────────────────
-
-    private fun tryHandleFinance(s: String): Boolean {
-        val isIncome  = s.matchesAny(KeywordMatcher.INCOME_STEMS)
-        val isExpense = s.matchesAny(KeywordMatcher.EXPENSE_STEMS)
-        if (!isIncome && !isExpense) return false
-
-        val amountRegex = Regex("""(\d+(?:[.,]\d{1,2})?)""")
-        val amount = amountRegex.find(s)
-            ?.groupValues?.get(1)
-            ?.replace(",", ".")
-            ?.toDoubleOrNull() ?: return false
-
-        val category = when {
-            s.matchesAny(KeywordMatcher.FUEL_STEMS)     -> ExpenseCategory.FUEL
-            s.matchesAny(KeywordMatcher.GAMBLING_STEMS) -> ExpenseCategory.GAMBLING
-            s.matchesAny(KeywordMatcher.FOOD_STEMS)     -> ExpenseCategory.FOOD
-            s.matchesAny(KeywordMatcher.OTHER_STEMS)    -> ExpenseCategory.OTHER
-            else -> if (isIncome) ExpenseCategory.WORK else ExpenseCategory.OTHER
-        }
-
-        val title = KeywordMatcher.findTitle(s)
-            ?: if (isIncome) "Przychód" else "Wydatek"
-
-        val type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE
-        val date = DateParser.parse(s) ?: LocalDate.now()
-
+        // Try finance, then calendar — both via shared VoiceCommandHandler
         serviceScope.launch {
-            financeRepository.addTransaction(Transaction(
-                title    = title,
-                amount   = amount,
-                type     = type,
-                category = category,
-                date     = date
-            ))
-            val sign     = if (type == TransactionType.INCOME) "plus" else "minus"
-            val typeWord = if (type == TransactionType.INCOME) "Przychód" else "Wydatek"
-            mainHandler.post {
-                speak("$typeWord zapisany! $sign ${"%.0f".format(amount)} złotych. $title.")
+            val reply = voiceCommandHandler.handleFinance(text)
+                ?: voiceCommandHandler.handleCalendarKeyword(text)
+            if (reply != null) {
+                mainHandler.post { speak(reply) }
+            } else {
+                mainHandler.post { speak("Nie rozumiem. Spróbuj np: dodaj siłownię o 18 albo zarobiłem 500") }
+                mainHandler.postDelayed({ startListening() }, 3000)
             }
         }
-        return true
-    }
-
-    private fun tryHandleCalendar(s: String): Boolean {
-        val isAdd = s.matchesAny(listOf("dodaj","add","wpisz","zaplanuj","umów","zapisz","ustaw","dodajże"))
-        if (!isAdd) return false
-
-        val timeRegex = Regex("""(?:o\s+)?(\d{1,2})(?::(\d{2}))?""")
-        val timeMatch = timeRegex.find(s) ?: return false
-        var hour   = timeMatch.groupValues[1].toIntOrNull() ?: return false
-        val minute = timeMatch.groupValues[2].toIntOrNull() ?: 0
-        if (s.contains("pm") && hour < 12) hour += 12
-        if (hour !in 0..23) return false
-
-        val category = when {
-            s.matchesAny(KeywordMatcher.HEALTH_STEMS)  -> EventCategory.HEALTH
-            s.matchesAny(KeywordMatcher.WORK_STEMS)    -> EventCategory.WORK
-            s.matchesAny(KeywordMatcher.SOCIAL_STEMS)  -> EventCategory.SOCIAL
-            s.matchesAny(KeywordMatcher.DOCTOR_STEMS)  -> EventCategory.PERSONAL
-            else                                       -> EventCategory.PERSONAL
-        }
-
-        val eventTitle = KeywordMatcher.findTitle(s) ?: "Wydarzenie"
-        val date  = DateParser.parse(s) ?: LocalDate.now()
-        val start = date.atTime(hour, minute)
-        val end   = start.plusHours(1)
-
-        serviceScope.launch {
-            eventRepository.addEvent(CalEvent(
-                title     = eventTitle,
-                startTime = start,
-                endTime   = end,
-                category  = category
-            ))
-            val dateLabel = DateParser.formatPolish(date)
-            mainHandler.post {
-                speak("$eventTitle dodano na $dateLabel o %02d:%02d!".format(hour, minute))
-            }
-        }
-        return true
     }
 
     // ── Bubble UI ─────────────────────────────────────────────────────────
