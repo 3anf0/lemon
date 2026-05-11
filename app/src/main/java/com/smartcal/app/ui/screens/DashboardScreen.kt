@@ -75,7 +75,7 @@ fun DashboardScreen(
                     Column {
                         Text("Zapytaj asystenta Lemon",
                             fontWeight = FontWeight.SemiBold, color = Color.White)
-                        Text("\"Dodaj siłownię o 18\" lub \"Marek, zaplanuj dzień\"",
+                        Text("\"Dodaj siłownię o 18\" lub \"Lemon, zaplanuj dzień\"",
                             fontSize = 13.sp, color = Color.White.copy(0.75f))
                     }
                 }
