@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
-    <string name="accessibility_description">Lemon używa dostępności do monitorowania aplikacji.</string>
-    <string name="app_name">Lemon</string>
-    <string name="tile_label">Lemon</string>
-    <string name="widget_description">Szybki dostęp do asystenta Marka</string>
-    <style name="Theme.SmartCalendarAI" parent="android:Theme.Material.Light.NoActionBar"/>
-</resources>
