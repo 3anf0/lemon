@@ -363,8 +363,7 @@ fun AddEventDialog(
     onAdd     : (String, Int, Int, EventCategory) -> Unit
 ) {
     var title            by remember { mutableStateOf("") }
-    var hour             by remember { mutableStateOf("09") }
-    var minute           by remember { mutableStateOf("00") }
+    val timeState        = rememberTimePickerState(initialHour = 9, initialMinute = 0, is24Hour = true)
     var selectedCategory by remember { mutableStateOf(EventCategory.PERSONAL) }
 
     AlertDialog(
@@ -381,22 +380,7 @@ fun AddEventDialog(
                     singleLine    = true
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value         = hour,
-                        onValueChange = { if (it.length <= 2) hour = it },
-                        label         = { Text("Godzina") },
-                        modifier      = Modifier.weight(1f),
-                        singleLine    = true
-                    )
-                    OutlinedTextField(
-                        value         = minute,
-                        onValueChange = { if (it.length <= 2) minute = it },
-                        label         = { Text("Minuta") },
-                        modifier      = Modifier.weight(1f),
-                        singleLine    = true
-                    )
-                }
+                TimeInput(state = timeState)
 
                 Text("Kategoria", style = MaterialTheme.typography.labelMedium)
 
@@ -443,12 +427,8 @@ fun AddEventDialog(
         },
         confirmButton = {
             Button(
-                onClick  = {
-                    val h = hour.toIntOrNull()?.coerceIn(0, 23) ?: 9
-                    val m = minute.toIntOrNull()?.coerceIn(0, 59) ?: 0
-                    if (title.isNotBlank()) onAdd(title, h, m, selectedCategory)
-                },
-                enabled = title.isNotBlank()
+                onClick  = { if (title.isNotBlank()) onAdd(title, timeState.hour, timeState.minute, selectedCategory) },
+                enabled  = title.isNotBlank()
             ) { Text("Dodaj") }
         },
         dismissButton = {
