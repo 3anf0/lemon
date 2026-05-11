@@ -1,0 +1,2 @@
+Android Studio will automatically download the Gradle wrapper when you open the project.
+You do not need to add anything here manually.

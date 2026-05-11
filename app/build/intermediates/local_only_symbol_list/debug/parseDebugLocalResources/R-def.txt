@@ -1,0 +1,34 @@
+R_DEF: Internal format may change without notice
+local
+color ic_launcher_background
+drawable bubble_background
+drawable bubble_background_awake
+drawable bubble_badge
+drawable bubble_pulse
+drawable bubble_shadow
+drawable ic_launcher_foreground
+drawable ic_lemon
+drawable ic_tile_marek
+drawable speech_bubble_bg
+drawable trash_background
+drawable trash_background_active
+drawable widget_background
+id bubble_circle
+id bubble_icon
+id pulse_ring
+id speech_bubble
+id speech_text
+id trash_icon
+id trash_zone
+id widget_root
+layout bubble_marek
+layout bubble_trash
+layout widget_marek
+mipmap ic_launcher
+mipmap ic_launcher_round
+string accessibility_description
+string app_name
+string tile_label
+string widget_description
+style Theme.SmartCalendarAI
+xml widget_info
