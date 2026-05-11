@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.smartcal.app.data.ClaudeApiClient
 import com.smartcal.app.data.DateParser
 import com.smartcal.app.data.EventRepository
+import com.smartcal.app.data.EventReminderManager
 import com.smartcal.app.data.FinanceRepository
 import com.smartcal.app.data.VoiceCommandHandler
 import com.smartcal.app.data.model.*
@@ -48,7 +49,8 @@ class VoiceViewModel @Inject constructor(
     private val geminiClient: ClaudeApiClient,
     private val eventRepository: EventRepository,
     private val financeRepository: FinanceRepository,
-    private val voiceCommandHandler: VoiceCommandHandler
+    private val voiceCommandHandler: VoiceCommandHandler,
+    private val reminderManager: EventReminderManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(VoiceUiState())
@@ -175,10 +177,12 @@ class VoiceViewModel @Inject constructor(
                                         else LocalDate.now()
                                     }.getOrDefault(LocalDate.now())
 
-                                eventRepository.addEvent(CalEvent(
+                                val event = CalEvent(
                                     title = result.eventTitle, category = cat,
                                     startTime = date.atTime(h, m), endTime = date.atTime(h, m).plusHours(1)
-                                ))
+                                )
+                                val newId = eventRepository.addEvent(event)
+                                reminderManager.schedule(event.copy(id = newId))
                                 val dateLabel = DateParser.formatPolish(date)
                                 "${result.eventTitle} dodano na $dateLabel o %02d:%02d!".format(h, m)
                             }.getOrElse { "Nie udało się dodać wydarzenia." }
