@@ -272,9 +272,27 @@ fun TransactionRow(
     tx       : com.smartcal.app.data.model.Transaction,
     onDelete : () -> Unit
 ) {
-    val dateFmt  = DateTimeFormatter.ofPattern("dd.MM")
-    val isIncome = tx.type == TransactionType.INCOME
-    val color    = categoryColor(tx.category)
+    val dateFmt     = DateTimeFormatter.ofPattern("dd.MM")
+    val isIncome    = tx.type == TransactionType.INCOME
+    val color       = categoryColor(tx.category)
+    var showConfirm by remember { mutableStateOf(false) }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            title = { Text("Usunąć transakcję?") },
+            text  = { Text("„${tx.title}" (${if (isIncome) "+" else "-"}${formatMoney(tx.amount)}) zostanie trwale usunięta.") },
+            confirmButton = {
+                Button(
+                    onClick = { showConfirm = false; onDelete() },
+                    colors  = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Usuń") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) { Text("Anuluj") }
+            }
+        )
+    }
 
     Card(
         shape    = RoundedCornerShape(12.dp),
@@ -310,7 +328,7 @@ fun TransactionRow(
                 color      = if (isIncome) Green else Red,
                 fontSize   = 15.sp
             )
-            IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = { showConfirm = true }, modifier = Modifier.size(36.dp)) {
                 Icon(
                     imageVector        = Icons.Default.Delete,
                     contentDescription = "Usuń",
