@@ -20,6 +20,7 @@ import com.smartcal.app.data.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
+import java.time.format.DateTimeFormatter as DTF
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -182,6 +183,26 @@ class VoiceViewModel @Inject constructor(
                                 "${result.eventTitle} dodano na $dateLabel o %02d:%02d!".format(h, m)
                             }.getOrElse { "Nie udało się dodać wydarzenia." }
                         } else result.clarificationQuestion ?: "O której godzinie?"
+                    }
+                    "DELETE_EVENT" -> {
+                        val target = result.targetEventTitle
+                        if (target.isNullOrBlank()) {
+                            "Które wydarzenie usunąć? Powiedz np: \"usuń siłownię\""
+                        } else {
+                            val allEvents = eventRepository.getAllEvents().first()
+                            val match = allEvents.firstOrNull {
+                                it.title.contains(target, ignoreCase = true) ||
+                                target.contains(it.title, ignoreCase = true)
+                            }
+                            if (match != null) {
+                                eventRepository.deleteEvent(match)
+                                val dateLabel = DateParser.formatPolish(match.startTime.toLocalDate())
+                                val time = match.startTime.format(DTF.ofPattern("HH:mm"))
+                                "Usunięto: ${match.title} ($dateLabel o $time) ✓"
+                            } else {
+                                "Nie znalazłem \"$target\" w kalendarzu. Sprawdź nazwę."
+                            }
+                        }
                     }
                     "PLAN_DAY", "QUERY" -> result.aiResponse ?: result.confirmation
                     else -> result.clarificationQuestion ?: result.confirmation
