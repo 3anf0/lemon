@@ -7,6 +7,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,10 +18,13 @@ import com.smartcal.app.data.EventReminderManager
 import com.smartcal.app.data.FinanceRepository
 import com.smartcal.app.data.VoiceCommandHandler
 import com.smartcal.app.data.model.*
+import com.smartcal.app.widget.WakeWordService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatter as DTF
@@ -34,7 +38,8 @@ data class VoiceUiState(
     val lastConfirmation: String = "",
     val conversationHistory: List<VoiceMessage> = emptyList(),
     val error: String? = null,
-    val isAwake: Boolean = false
+    val isAwake: Boolean = false,
+    val awaitingFollowUp: Boolean = false
 )
 
 data class VoiceMessage(
@@ -56,6 +61,10 @@ class VoiceViewModel @Inject constructor(
     private val _state = MutableStateFlow(VoiceUiState())
     val state: StateFlow<VoiceUiState> = _state.asStateFlow()
 
+    private val prefs = context.getSharedPreferences("lemon_prefs", Context.MODE_PRIVATE)
+    private val _wakeWordEnabled = MutableStateFlow(prefs.getBoolean("wake_word_enabled", false))
+    val wakeWordEnabled: StateFlow<Boolean> = _wakeWordEnabled.asStateFlow()
+
     private var todayEventsSnapshot: List<CalEvent> = emptyList()
     private var speechRecognizer: SpeechRecognizer? = null
     private var tts: TextToSpeech? = null
@@ -65,8 +74,17 @@ class VoiceViewModel @Inject constructor(
         const val WAKE_WORD = "lemon"
     }
 
+    fun setWakeWordEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("wake_word_enabled", enabled).apply()
+        _wakeWordEnabled.value = enabled
+        if (enabled) WakeWordService.start(context) else WakeWordService.stop(context)
+    }
+
     init {
         initTts()
+        // Wake word disabled — ensure service is stopped and pref is cleared
+        WakeWordService.stop(context)
+        prefs.edit().putBoolean("wake_word_enabled", false).apply()
         viewModelScope.launch {
             eventRepository.getEventsForDay(LocalDate.now()).collect { events ->
                 todayEventsSnapshot = events
@@ -132,6 +150,11 @@ class VoiceViewModel @Inject constructor(
 
     private fun handleSpeechResult(text: String) {
         val lower = text.lowercase().trim()
+        if (_state.value.awaitingFollowUp) {
+            addToHistory(text, isUser = true)
+            handleFollowUp(lower)
+            return
+        }
         if (lower.contains(WAKE_WORD)) {
             _state.update { it.copy(isAwake = true) }
             val g = "Tu Lemon, co tam?"
@@ -151,8 +174,8 @@ class VoiceViewModel @Inject constructor(
         val financeResult = voiceCommandHandler.handleFinance(text)
         if (financeResult != null) {
             addToHistory(financeResult, isUser = false)
-            speak(financeResult)
             _state.update { it.copy(isProcessing = false, lastConfirmation = financeResult) }
+            askFollowUp(financeResult)
             return@launch
         }
 
@@ -211,14 +234,71 @@ class VoiceViewModel @Inject constructor(
                     "PLAN_DAY", "QUERY" -> result.aiResponse ?: result.confirmation
                     else -> result.clarificationQuestion ?: result.confirmation
                 }
-                addToHistory(reply, isUser = false); speak(reply)
+                addToHistory(reply, isUser = false)
                 _state.update { it.copy(isProcessing = false, lastConfirmation = reply) }
+                askFollowUp(reply)
             }
             .onFailure {
                 val msg = "Przepraszam, coś poszło nie tak. Sprawdź internet."
                 addToHistory(msg, isUser = false); speak(msg)
                 _state.update { it.copy(isProcessing = false) }
             }
+    }
+
+    // ── Follow-up flow ────────────────────────────────────────────────────
+
+    private suspend fun speakSuspend(text: String) {
+        if (!ttsReady) return
+        val done  = CompletableDeferred<Unit>()
+        val uttId = "utt_${System.currentTimeMillis()}"
+        tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(id: String?) {}
+            override fun onDone(id: String?)  { if (id == uttId) done.complete(Unit) }
+            override fun onError(id: String?) { if (id == uttId) done.complete(Unit) }
+        })
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, uttId)
+        withTimeoutOrNull(10_000) { done.await() }
+        tts?.setOnUtteranceProgressListener(null)
+    }
+
+    private suspend fun askFollowUp(confirmationText: String) {
+        speakSuspend(confirmationText)
+        val question = "Czy coś jeszcze?"
+        addToHistory(question, isUser = false)
+        speakSuspend(question)
+        _state.update { it.copy(awaitingFollowUp = true) }
+        startListening()
+    }
+
+    private fun handleFollowUp(lower: String) {
+        _state.update { it.copy(awaitingFollowUp = false) }
+        when {
+            lower.containsAny("zostań", "nie ale") -> {
+                val msg = "Ok, zostanę w pobliżu."
+                addToHistory(msg, isUser = false)
+                speak(msg)
+                _state.update { it.copy(isAwake = false) }
+            }
+            lower.containsAny("nie", "wyłącz", "zamknij", "koniec", "stop", "pa", "na razie", "żegnaj") -> {
+                val msg = "Dobra, do zobaczenia!"
+                addToHistory(msg, isUser = false)
+                speak(msg)
+                _state.update { it.copy(isAwake = false) }
+            }
+            lower.containsAny("tak", "yes", "słucham", "oczywiście", "jasne") -> {
+                val msg = "Słucham!"
+                addToHistory(msg, isUser = false)
+                viewModelScope.launch {
+                    speakSuspend(msg)
+                    startListening()
+                }
+            }
+            else -> {
+                // Nieznana odpowiedź — traktuj jako nową komendę
+                _state.update { it.copy(isProcessing = true) }
+                processCommand(lower)
+            }
+        }
     }
 
     fun sendTextCommand(text: String) {

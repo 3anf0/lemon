@@ -21,6 +21,7 @@ import androidx.navigation.compose.rememberNavController
 import com.smartcal.app.ui.screens.*
 import com.smartcal.app.ui.theme.SmartCalendarAITheme
 import com.smartcal.app.viewmodel.CalendarViewModel
+import com.smartcal.app.widget.WakeWordService
 import dagger.hilt.android.AndroidEntryPoint
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -38,6 +39,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val prefs = getSharedPreferences("lemon_prefs", MODE_PRIVATE)
+        if (prefs.getBoolean("wake_word_enabled", false)) {
+            WakeWordService.start(this)
+        }
         // Widget/Tile passes "start_destination" = "voice" to open Marek directly
         val startDest    = intent?.getStringExtra("start_destination") ?: "dashboard"
         val voiceCommand = intent?.getStringExtra("voice_command")

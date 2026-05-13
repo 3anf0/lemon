@@ -29,19 +29,26 @@ class VoiceCommandHandler @Inject constructor(
         val isExpense = s.matchesAny(KeywordMatcher.EXPENSE_STEMS)
         if (!isIncome && !isExpense) return null
 
+        // Wyłap "dodaj opis ..." lub samo "opis ..." i oddziel od komendy
+        val noteRegex = Regex("""(?:dodaj\s+)?opis\s+(.+)$""")
+        val noteMatch = noteRegex.find(s)
+        val note = noteMatch?.groupValues?.get(1)?.trim() ?: ""
+        // Parsuj kategorię/tytuł/kwotę tylko z części PRZED opisem
+        val cmd = if (noteMatch != null) s.substring(0, noteMatch.range.first).trim() else s
+
         val amount = Regex("""(\d+(?:[.,]\d{1,2})?)""")
-            .find(s)?.groupValues?.get(1)?.replace(",", ".")?.toDoubleOrNull()
+            .find(cmd)?.groupValues?.get(1)?.replace(",", ".")?.toDoubleOrNull()
             ?: return null
         if (amount <= 0) return null
 
         val category = when {
-            s.matchesAny(KeywordMatcher.FUEL_STEMS)     -> ExpenseCategory.FUEL
-            s.matchesAny(KeywordMatcher.GAMBLING_STEMS) -> ExpenseCategory.GAMBLING
-            s.matchesAny(KeywordMatcher.FOOD_STEMS)     -> ExpenseCategory.FOOD
-            s.matchesAny(KeywordMatcher.OTHER_STEMS)    -> ExpenseCategory.OTHER
+            cmd.matchesAny(KeywordMatcher.FUEL_STEMS)     -> ExpenseCategory.FUEL
+            cmd.matchesAny(KeywordMatcher.GAMBLING_STEMS) -> ExpenseCategory.GAMBLING
+            cmd.matchesAny(KeywordMatcher.FOOD_STEMS)     -> ExpenseCategory.FOOD
+            cmd.matchesAny(KeywordMatcher.OTHER_STEMS)    -> ExpenseCategory.OTHER
             else -> if (isIncome) ExpenseCategory.WORK else ExpenseCategory.OTHER
         }
-        val title = KeywordMatcher.findTitle(s) ?: if (isIncome) "Przychód" else "Wydatek"
+        val title = KeywordMatcher.findTitle(cmd) ?: if (isIncome) "Przychód" else "Wydatek"
         val type  = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE
         val date  = DateParser.parse(text) ?: LocalDate.now()
 
@@ -50,12 +57,14 @@ class VoiceCommandHandler @Inject constructor(
             amount   = amount,
             type     = type,
             category = category,
-            date     = date
+            date     = date,
+            note     = note
         ))
 
         val sign     = if (type == TransactionType.INCOME) "+" else "-"
         val typeWord = if (type == TransactionType.INCOME) "Przychód" else "Wydatek"
-        return "Zapisano! $typeWord $sign%.2f zł — $title (${category.label}) ✓".format(amount)
+        val notePart = if (note.isNotBlank()) " · $note" else ""
+        return "Zapisano! $typeWord $sign%.2f zł — $title (${category.label})$notePart ✓".format(amount)
     }
 
     // ── Calendar (keyword-only, no AI — used by bubble service) ──────────

@@ -7,16 +7,37 @@ import com.smartcal.app.data.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
 private const val RECENT_DAYS = 90L
 
+private val MONTHS_PL = arrayOf(
+    "sty", "lut", "mar", "kwi", "maj", "cze",
+    "lip", "sie", "wrz", "paź", "lis", "gru"
+)
+
+private fun buildWeekLabel(monday: LocalDate, sunday: LocalDate, isCurrent: Boolean): String {
+    val range = if (monday.month == sunday.month)
+        "${monday.dayOfMonth}–${sunday.dayOfMonth} ${MONTHS_PL[sunday.monthValue - 1]}"
+    else
+        "${monday.dayOfMonth} ${MONTHS_PL[monday.monthValue - 1]} – ${sunday.dayOfMonth} ${MONTHS_PL[sunday.monthValue - 1]}"
+    return if (isCurrent) "Ten tydzień · $range" else range
+}
+
+data class WeekGroup(
+    val label: String,
+    val weekStart: LocalDate,
+    val transactions: List<Transaction>,
+    val weekTotal: Double
+)
+
 data class FinanceUiState(
     val allTransactions: List<Transaction> = emptyList(),
     val yesterdaySummary: PeriodSummary = PeriodSummary("Wczoraj", 0.0, 0.0),
-    val lastMonthSummary: PeriodSummary = PeriodSummary("Poprzedni miesiąc", 0.0, 0.0),
+    val thisWeekSummary: PeriodSummary = PeriodSummary("Ten tydzień", 0.0, 0.0),
     val currentMonthSummary: PeriodSummary = PeriodSummary("Ten miesiąc", 0.0, 0.0),
     val isAddingTransaction: Boolean = false,
     val showFullHistory: Boolean = false
@@ -28,6 +49,24 @@ data class FinanceUiState(
                 }
     val hasOlderTransactions: Boolean
         get() = allTransactions.size > displayedTransactions.size
+    val weekGroups: List<WeekGroup>
+        get() {
+            val today = LocalDate.now()
+            return displayedTransactions
+                .groupBy { it.date.with(DayOfWeek.MONDAY) }
+                .entries
+                .sortedByDescending { it.key }
+                .map { (monday, txs) ->
+                    val sunday    = monday.plusDays(6)
+                    val isCurrent = !today.isBefore(monday) && !today.isAfter(sunday)
+                    WeekGroup(
+                        label        = buildWeekLabel(monday, sunday, isCurrent),
+                        weekStart    = monday,
+                        transactions = txs.sortedByDescending { it.date },
+                        weekTotal    = txs.sumOf { it.signedAmount }
+                    )
+                }
+        }
 }
 
 @HiltViewModel
@@ -41,18 +80,18 @@ class FinanceViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             repo.getAllTransactions().collect { all ->
-                val today     = LocalDate.now()
-                val yesterday = today.minusDays(1)
-                val thisMonth = YearMonth.now()
-                val lastMonth = thisMonth.minusMonths(1)
+                val today         = LocalDate.now()
+                val yesterday     = today.minusDays(1)
+                val thisMonth     = YearMonth.now()
+                val thisWeekStart = today.with(DayOfWeek.MONDAY)
+                val thisWeekEnd   = thisWeekStart.plusDays(6)
 
                 _state.update { it.copy(
-                    allTransactions      = all,
-                    yesterdaySummary     = summarise("Wczoraj", all, yesterday, yesterday),
-                    currentMonthSummary  = summarise("Ten miesiąc", all,
+                    allTransactions     = all,
+                    yesterdaySummary    = summarise("Wczoraj", all, yesterday, yesterday),
+                    currentMonthSummary = summarise("Ten miesiąc", all,
                         thisMonth.atDay(1), thisMonth.atEndOfMonth()),
-                    lastMonthSummary     = summarise("Poprzedni miesiąc", all,
-                        lastMonth.atDay(1), lastMonth.atEndOfMonth())
+                    thisWeekSummary     = summarise("Ten tydzień", all, thisWeekStart, thisWeekEnd)
                 )}
             }
         }

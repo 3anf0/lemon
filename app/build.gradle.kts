@@ -36,6 +36,8 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
+tasks.register("unitTestClasses")
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -38,10 +38,10 @@ import com.smartcal.app.viewmodel.VoiceViewModel
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun VoiceScreen(vm: VoiceViewModel = hiltViewModel()) {
-    val state        by vm.state.collectAsState()
+    val state         by vm.state.collectAsState()
     val micPermission = rememberPermissionState(android.Manifest.permission.RECORD_AUDIO)
-    var textInput    by remember { mutableStateOf("") }
-    val listState     = rememberLazyListState()
+    var textInput       by remember { mutableStateOf("") }
+    val listState       = rememberLazyListState()
 
     LaunchedEffect(state.conversationHistory.size) {
         if (state.conversationHistory.isNotEmpty()) {
@@ -298,6 +298,53 @@ fun MicButton(
                 Icon(Icons.Default.Mic, "Naciśnij i mów", tint = Color.White, modifier = Modifier.size(30.dp))
             }
         }
+    }
+}
+
+// ── Wake word toggle ──────────────────────────────────────────────────────
+
+@Composable
+fun WakeWordToggle(enabled: Boolean, onToggle: (Boolean) -> Unit) {
+    Surface(
+        color          = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier          = Modifier.weight(1f)
+            ) {
+                Text(if (enabled) "🎙️" else "🔇", fontSize = 20.sp)
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(
+                        "Nasłuchuj w tle",
+                        style      = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        if (enabled) "Aktywne — powiedz \"cześć lemon\""
+                        else         "Wył. — wyższe zużycie baterii gdy włączone",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(0.5f)
+                    )
+                }
+            }
+            Switch(
+                checked         = enabled,
+                onCheckedChange = onToggle
+            )
+        }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color     = MaterialTheme.colorScheme.onSurface.copy(0.1f)
+        )
     }
 }
 

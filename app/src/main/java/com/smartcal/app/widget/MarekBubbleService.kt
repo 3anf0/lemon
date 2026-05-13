@@ -49,6 +49,7 @@ class MarekBubbleService : Service() {
     private var ttsReady = false
     private var isListening = false
     private var isAwake = false
+    private var awaitingFollowUp = false
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -57,10 +58,21 @@ class MarekBubbleService : Service() {
         const val CHANNEL_ID  = "marek_bubble_channel"
         const val NOTIF_ID    = 42
         const val ACTION_STOP = "STOP_BUBBLE"
+        const val ACTION_AUTO_LISTEN = "AUTO_LISTEN"
         const val WAKE_WORD   = "lemon"
+        const val ACTION_BUBBLE_STARTED = "com.smartcal.app.BUBBLE_STARTED"
 
         fun start(context: Context) {
             val i = Intent(context, MarekBubbleService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                context.startForegroundService(i)
+            else context.startService(i)
+        }
+
+        fun startAutoListen(context: Context) {
+            val i = Intent(context, MarekBubbleService::class.java).apply {
+                action = ACTION_AUTO_LISTEN
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 context.startForegroundService(i)
             else context.startService(i)
@@ -82,6 +94,11 @@ class MarekBubbleService : Service() {
         initSpeech()
         showBubble()
         showTrash()
+        sendBroadcast(Intent(ACTION_BUBBLE_STARTED))
+        // Immediately awake — start listening without requiring wake word
+        isAwake = true
+        setBubbleAwake(true)
+        mainHandler.postDelayed({ startListening() }, 700)
     }
 
     override fun onDestroy() {
@@ -91,12 +108,20 @@ class MarekBubbleService : Service() {
         tts?.shutdown()
         bubbleView?.let { runCatching { windowManager.removeView(it) } }
         trashView?.let { runCatching { windowManager.removeView(it) } }
-        // Tell the tile that bubble is gone so it resets its state
+        // Stop wake word service so it can't re-open the bubble after close
+        WakeWordService.stop(this)
         sendBroadcast(Intent(MarekTileService.ACTION_BUBBLE_CLOSED))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) stopSelf()
+        when (intent?.action) {
+            ACTION_STOP -> stopSelf()
+            ACTION_AUTO_LISTEN -> {
+                isAwake = true
+                setBubbleAwake(true)
+                mainHandler.postDelayed({ startListening() }, 600)
+            }
+        }
         return START_STICKY
     }
 
@@ -131,13 +156,38 @@ class MarekBubbleService : Service() {
     }
 
     private fun speak(text: String) {
-        // Show what Marek is saying in the speech bubble
         mainHandler.post { showSpeechText(text) }
         if (ttsReady) {
             tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bubble_${System.currentTimeMillis()}")
         }
-        // Auto-hide text after 4 seconds
         mainHandler.postDelayed({ hideSpeechText() }, 4000)
+    }
+
+    // speak() with callback fired when TTS finishes (or after timeout if TTS unavailable)
+    private fun speakThen(text: String, onDone: () -> Unit) {
+        mainHandler.post { showSpeechText(text) }
+        val uttId = "bubble_then_${System.currentTimeMillis()}"
+        if (ttsReady) {
+            tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                override fun onStart(id: String?) {}
+                override fun onDone(id: String?) {
+                    if (id == uttId) {
+                        tts?.setOnUtteranceProgressListener(null)
+                        mainHandler.post { hideSpeechText(); onDone() }
+                    }
+                }
+                override fun onError(id: String?) {
+                    if (id == uttId) {
+                        tts?.setOnUtteranceProgressListener(null)
+                        mainHandler.post { hideSpeechText(); onDone() }
+                    }
+                }
+            })
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, uttId)
+        } else {
+            val delay = maxOf(1500L, text.length * 80L)
+            mainHandler.postDelayed({ hideSpeechText(); onDone() }, delay)
+        }
     }
 
     // ── Speech ────────────────────────────────────────────────────────────
@@ -190,17 +240,19 @@ class MarekBubbleService : Service() {
     private fun handleSpeech(text: String) {
         val lower = text.lowercase()
 
-        // Wake word check
-        if (lower.contains(WAKE_WORD)) {
-            isAwake = true
-            setBubbleAwake(true)
-            speak("Tu Lemon, co tam?")
-            mainHandler.postDelayed({ startListening() }, 2500)
+        if (awaitingFollowUp) {
+            handleFollowUp(lower)
             return
         }
 
         if (!isAwake) {
-            speak("Powiedz Lemon żeby zacząć")
+            // Only react to wake word when sleeping (e.g. after "zostań")
+            if (lower.contains(WAKE_WORD)) {
+                isAwake = true
+                setBubbleAwake(true)
+                speak("Tu Lemon, co tam?")
+                mainHandler.postDelayed({ startListening() }, 2500)
+            }
             return
         }
 
@@ -209,10 +261,42 @@ class MarekBubbleService : Service() {
             val reply = voiceCommandHandler.handleFinance(text)
                 ?: voiceCommandHandler.handleCalendarKeyword(text)
             if (reply != null) {
-                mainHandler.post { speak(reply) }
+                mainHandler.post {
+                    speakThen(reply) {
+                        mainHandler.postDelayed({
+                            speakThen("Czy coś jeszcze?") {
+                                awaitingFollowUp = true
+                                startListening()
+                            }
+                        }, 300)
+                    }
+                }
             } else {
-                mainHandler.post { speak("Nie rozumiem. Spróbuj np: dodaj siłownię o 18 albo zarobiłem 500") }
-                mainHandler.postDelayed({ startListening() }, 3000)
+                mainHandler.post {
+                    speak("Nie rozumiem. Spróbuj np: dodaj siłownię o 18 albo zarobiłem 500")
+                    mainHandler.postDelayed({ startListening() }, 3500)
+                }
+            }
+        }
+    }
+
+    private fun handleFollowUp(lower: String) {
+        awaitingFollowUp = false
+        when {
+            lower.containsAny("zostań", "nie ale") -> {
+                isAwake = false
+                setBubbleAwake(false)
+                speak("Ok, zostanę w pobliżu.")
+            }
+            lower.containsAny("nie", "wyłącz", "zamknij", "koniec", "stop", "pa", "na razie") -> {
+                speakThen("Dobra, do zobaczenia!") { stopSelf() }
+            }
+            lower.containsAny("tak", "yes", "słucham", "oczywiście", "jasne") -> {
+                speakThen("Słucham!") { startListening() }
+            }
+            else -> {
+                // Nieznana odpowiedź — traktuj jako nową komendę
+                handleSpeech(lower)
             }
         }
     }

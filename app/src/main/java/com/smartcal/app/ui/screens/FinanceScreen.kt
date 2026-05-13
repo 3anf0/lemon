@@ -1,6 +1,7 @@
 package com.smartcal.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,6 +31,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.smartcal.app.data.model.*
 import com.smartcal.app.ui.theme.AccentBlue
 import com.smartcal.app.viewmodel.FinanceViewModel
+import com.smartcal.app.viewmodel.WeekGroup
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val Green  = Color(0xFF34C759)
@@ -38,6 +41,14 @@ private val Red    = Color(0xFFFF3B30)
 @Composable
 fun FinanceScreen(vm: FinanceViewModel = hiltViewModel()) {
     val state by vm.state.collectAsState()
+
+    // Expanded weeks state — current week auto-expanded on first load
+    var expandedWeeks by remember { mutableStateOf(setOf<LocalDate>()) }
+    LaunchedEffect(state.weekGroups.size) {
+        if (expandedWeeks.isEmpty() && state.weekGroups.isNotEmpty()) {
+            expandedWeeks = setOf(state.weekGroups.first().weekStart)
+        }
+    }
 
     // Box allows FAB to float above content, pinned at bottom-right
     Box(modifier = Modifier.fillMaxSize()) {
@@ -71,7 +82,7 @@ fun FinanceScreen(vm: FinanceViewModel = hiltViewModel()) {
                         modifier = Modifier.weight(1f)
                     )
                     SummaryCard(
-                        summary  = state.lastMonthSummary,
+                        summary  = state.thisWeekSummary,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -130,11 +141,28 @@ fun FinanceScreen(vm: FinanceViewModel = hiltViewModel()) {
                     }
                 }
             } else {
-                items(state.displayedTransactions) { tx ->
-                    TransactionRow(
-                        tx       = tx,
-                        onDelete = { vm.deleteTransaction(tx.id) }
-                    )
+                state.weekGroups.forEach { group ->
+                    val isExpanded = group.weekStart in expandedWeeks
+                    item(key = group.weekStart.toString()) {
+                        WeekGroupHeader(
+                            group    = group,
+                            expanded = isExpanded,
+                            onToggle = {
+                                expandedWeeks = if (isExpanded)
+                                    expandedWeeks - group.weekStart
+                                else
+                                    expandedWeeks + group.weekStart
+                            }
+                        )
+                    }
+                    if (isExpanded) {
+                        items(group.transactions, key = { it.id }) { tx ->
+                            TransactionRow(
+                                tx       = tx,
+                                onDelete = { vm.deleteTransaction(tx.id) }
+                            )
+                        }
+                    }
                 }
 
                 if (state.hasOlderTransactions || state.showFullHistory) {
@@ -175,8 +203,8 @@ fun FinanceScreen(vm: FinanceViewModel = hiltViewModel()) {
     if (state.isAddingTransaction) {
         AddTransactionDialog(
             onDismiss = { vm.setAdding(false) },
-            onAdd     = { title, amount, type, category ->
-                vm.addTransaction(title, amount, type, category)
+            onAdd     = { title, amount, type, category, note ->
+                vm.addTransaction(title, amount, type, category, note = note)
                 vm.setAdding(false)
             }
         )
@@ -287,6 +315,43 @@ fun CategoryBreakdownCard(summary: PeriodSummary) {
     }
 }
 
+// ── Week group header ─────────────────────────────────────────────────────
+
+@Composable
+fun WeekGroupHeader(group: WeekGroup, expanded: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier              = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() }
+            .padding(top = 14.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment     = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text     = if (expanded) "▾" else "▸",
+                fontSize = 13.sp,
+                color    = MaterialTheme.colorScheme.onSurface.copy(0.5f)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text          = group.label.uppercase(),
+                style         = MaterialTheme.typography.labelSmall,
+                fontWeight    = FontWeight.Bold,
+                color         = MaterialTheme.colorScheme.onSurface.copy(0.45f),
+                letterSpacing = 0.8.sp
+            )
+        }
+        val totalColor = if (group.weekTotal >= 0) Green else Red
+        Text(
+            text       = "${if (group.weekTotal >= 0) "+" else ""}${formatMoney(group.weekTotal)}",
+            style      = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color      = totalColor
+        )
+    }
+}
+
 // ── Single transaction row ────────────────────────────────────────────────
 
 @Composable
@@ -343,6 +408,13 @@ fun TransactionRow(
                     fontSize = 12.sp,
                     color    = MaterialTheme.colorScheme.onSurface.copy(0.5f)
                 )
+                if (tx.note.isNotBlank()) {
+                    Text(
+                        tx.note,
+                        fontSize = 11.sp,
+                        color    = MaterialTheme.colorScheme.onSurface.copy(0.4f)
+                    )
+                }
             }
             Text(
                 text       = "${if (isIncome) "+" else "-"} ${formatMoney(tx.amount)}",
@@ -368,12 +440,13 @@ fun TransactionRow(
 @Composable
 fun AddTransactionDialog(
     onDismiss : () -> Unit,
-    onAdd     : (String, Double, TransactionType, ExpenseCategory) -> Unit
+    onAdd     : (String, Double, TransactionType, ExpenseCategory, String) -> Unit
 ) {
     var title     by remember { mutableStateOf("") }
     var amountStr by remember { mutableStateOf("") }
     var type      by remember { mutableStateOf(TransactionType.EXPENSE) }
     var category  by remember { mutableStateOf(ExpenseCategory.FOOD) }
+    var note      by remember { mutableStateOf("") }
 
     LaunchedEffect(category) {
         type = if (category == ExpenseCategory.WORK) TransactionType.INCOME
@@ -426,6 +499,14 @@ fun AddTransactionDialog(
                     prefix          = { Text("zł ") }
                 )
 
+                OutlinedTextField(
+                    value         = note,
+                    onValueChange = { note = it },
+                    label         = { Text("Notatka (opcjonalnie)") },
+                    modifier      = Modifier.fillMaxWidth(),
+                    singleLine    = true
+                )
+
                 Text("Kategoria", style = MaterialTheme.typography.labelMedium)
 
                 Row(
@@ -474,7 +555,7 @@ fun AddTransactionDialog(
                 onClick  = {
                     val amt = amountStr.toDoubleOrNull() ?: return@Button
                     val t   = if (title.isBlank()) category.label else title
-                    onAdd(t, amt, type, category)
+                    onAdd(t, amt, type, category, note.trim())
                 },
                 enabled = amountStr.toDoubleOrNull() != null && amountStr.isNotBlank()
             ) { Text("Dodaj") }
