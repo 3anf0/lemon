@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 @Entity(tableName = "events")
 data class EventEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val firestoreId: String = "",
     val title: String,
     val startEpoch: Long,
     val endEpoch: Long,
@@ -50,6 +51,7 @@ enum class ExpenseCategory(val label: String, val emoji: String) {
 @Entity(tableName = "transactions")
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val firestoreId: String = "",
     val title: String,
     val amount: Double,             // always positive; type determines +/-
     val type: String,               // "INCOME" or "EXPENSE"

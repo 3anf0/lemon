@@ -18,6 +18,9 @@ interface EventDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvent(event: EventEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(events: List<EventEntity>)
+
     @Delete
     suspend fun deleteEvent(event: EventEntity)
 
@@ -26,6 +29,18 @@ interface EventDao {
 
     @Query("DELETE FROM events WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM events")
+    suspend fun deleteAll()
+
+    @Query("UPDATE events SET firestoreId = :fid WHERE id = :id")
+    suspend fun updateFirestoreId(id: Long, fid: String)
+
+    @Query("SELECT firestoreId FROM events WHERE id = :id")
+    suspend fun getFirestoreId(id: Long): String
+
+    @Query("SELECT * FROM events WHERE firestoreId = :fid LIMIT 1")
+    suspend fun getByFirestoreId(fid: String): EventEntity?
 }
 
 // ── Transaction DAO ───────────────────────────────────────────────────────
@@ -42,15 +57,30 @@ interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(tx: TransactionEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(txs: List<TransactionEntity>)
+
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM transactions")
+    suspend fun deleteAll()
+
+    @Query("UPDATE transactions SET firestoreId = :fid WHERE id = :id")
+    suspend fun updateFirestoreId(id: Long, fid: String)
+
+    @Query("SELECT firestoreId FROM transactions WHERE id = :id")
+    suspend fun getFirestoreId(id: Long): String
+
+    @Query("SELECT * FROM transactions WHERE firestoreId = :fid LIMIT 1")
+    suspend fun getByFirestoreId(fid: String): TransactionEntity?
 }
 
 // ── Database ──────────────────────────────────────────────────────────────
 
 @Database(
     entities = [EventEntity::class, TransactionEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

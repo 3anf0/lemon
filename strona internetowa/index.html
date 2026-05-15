@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lemon — Asystent Głosowy AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <span class="logo-icon">🍋</span>
+        <span class="logo-text">Lemon</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#features">Funkcje</a></li>
+        <li><a href="#how">Jak działa</a></li>
+        <li><a href="#tech">Technologie</a></li>
+        <li><a href="#screens">Ekrany</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Powered by Gemini AI
+      </div>
+      <h1 class="hero-title">
+        Twój osobisty<br />
+        <span class="gradient-text">asystent głosowy</span><br />
+        na Androida
+      </h1>
+      <p class="hero-subtitle">
+        Zarządzaj kalendarzem, finansami i notatkami — jednym głosem.<br />
+        Powiedz <strong>"Lemon"</strong> i zacznij.
+      </p>
+      <div class="hero-cta">
+        <a href="#features" class="btn btn-primary">Poznaj funkcje</a>
+        <a href="webapp.html" class="btn btn-ghost">Panel użytkownika →</a>
+      </div>
+    </div>
+    <div class="hero-phone">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="app-header">
+            <span>🍋 Lemon</span>
+            <span class="app-time">18:42</span>
+          </div>
+          <div class="app-wake">
+            <div class="wake-ring ring-1"></div>
+            <div class="wake-ring ring-2"></div>
+            <div class="wake-ring ring-3"></div>
+            <div class="wake-mic">🎙️</div>
+          </div>
+          <div class="app-bubble">
+            <p>Słucham… co mogę zrobić?</p>
+          </div>
+          <div class="app-transcript">
+            <div class="transcript-user">"Dodaj siłownię jutro o 18"</div>
+            <div class="transcript-ai">✅ Dodano wydarzenie: <strong>Siłownia</strong><br />jutro, 18:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Funkcje</span>
+        <h2>Wszystko czego potrzebujesz,<br />sterowane głosem</h2>
+        <p>Lemon rozumie język naturalny i reaguje po polsku — bez klikania, bez wpisywania.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card feature-card--large">
+          <div class="feature-icon">📅</div>
+          <h3>Inteligentny Kalendarz</h3>
+          <p>Dodawaj, przeglądaj i zarządzaj wydarzeniami głosem. Lemon rozumie polskie wyrażenia czasowe: "jutro", "w środę", "za tydzień", "10 maja o 15".</p>
+          <div class="feature-example">
+            <span class="ex-label">Przykład</span>
+            <code>"Spotkanie z Jankiem w piątek o 14:30"</code>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💰</div>
+          <h3>Zarządzanie Finansami</h3>
+          <p>Rejestruj przychody i wydatki głosem. Automatyczne kategorie, tygodniowe podsumowania i statystyki.</p>
+          <div class="feature-example">
+            <span class="ex-label">Przykład</span>
+            <code>"Wydałem 50 zł na jedzenie"</code>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎙️</div>
+          <h3>Notatki Głosowe</h3>
+          <p>Dyktuj notatki i pomysły w dowolnym momencie — Lemon zapisze je i będzie gotowy do odczytu.</p>
+          <div class="feature-example">
+            <span class="ex-label">Przykład</span>
+            <code>"Zapamiętaj: kupić mleko i chleb"</code>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <h3>Przypomnienia</h3>
+          <p>Automatyczne powiadomienia przed każdym wydarzeniem. Nigdy nie zapomnisz o ważnym spotkaniu.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Dashboard</h3>
+          <p>Przejrzysty widok dnia — najbliższe wydarzenia, saldo finansowe i skróty głosowe w jednym miejscu.</p>
+        </div>
+        <div class="feature-card feature-card--accent">
+          <div class="feature-icon">🟡</div>
+          <h3>Floating Bubble</h3>
+          <p>Pływająca bańka zawsze dostępna na ekranie. Powiedz <strong>"Lemon"</strong> — i asystent natychmiast reaguje, niezależnie od tego jakiej aplikacji używasz.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section section--dark" id="how">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag section-tag--light">Jak działa</span>
+        <h2>Od słowa do akcji<br />w ułamku sekundy</h2>
+        <p>Trójwarstwowa architektura zapewnia szybką i niezawodną reakcję.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">01</div>
+          <div class="step-content">
+            <h3>Wake Word Detection</h3>
+            <p>Usługa <code>WakeWordService</code> nasłuchuje w tle. Gdy wykryje słowo <strong>"Lemon"</strong>, aktywuje interfejs głosowy natychmiast.</p>
+          </div>
+          <div class="step-icon">👂</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-number">02</div>
+          <div class="step-content">
+            <h3>Rozpoznawanie intencji</h3>
+            <p>Komendy finansowe trafiają do <strong>KeywordMatcher</strong> — offline, błyskawicznie. Komendy kalendarzowe do <strong>Gemini 1.5 Flash</strong> po głębsze rozumienie.</p>
+          </div>
+          <div class="step-icon">🧠</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-number">03</div>
+          <div class="step-content">
+            <h3>Akcja + Odpowiedź TTS</h3>
+            <p>Dane trafiają do bazy Room. Lemon odpowiada głosem po polsku (Text-to-Speech) i wyświetla potwierdzenie na ekranie.</p>
+          </div>
+          <div class="step-icon">✅</div>
+        </div>
+      </div>
+      <div class="offline-badge">
+        <span class="offline-icon">📡</span>
+        <div>
+          <strong>Działa też offline</strong>
+          <p>Komendy finansowe i podstawowe akcje działają bez internetu dzięki wbudowanemu KeywordMatcher z polskim stemmerem.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH STACK -->
+  <section class="section" id="tech">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Technologie</span>
+        <h2>Zbudowany na solidnych<br />fundamentach</h2>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-card">
+          <div class="tech-logo tech-logo--kotlin">K</div>
+          <h4>Kotlin</h4>
+          <p>Język główny — bezpieczny, zwięzły, idealny dla Androida</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-logo tech-logo--compose">C</div>
+          <h4>Jetpack Compose</h4>
+          <p>Deklaratywne UI — nowoczesny toolkit Google do budowy interfejsów</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-logo tech-logo--gemini">G</div>
+          <h4>Gemini 1.5 Flash</h4>
+          <p>AI backend do rozumienia języka naturalnego w komendach kalendarza</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-logo tech-logo--room">R</div>
+          <h4>Room Database</h4>
+          <p>Lokalna baza SQLite — przechowuje wydarzenia i transakcje finansowe</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-logo tech-logo--hilt">H</div>
+          <h4>Hilt / Dagger</h4>
+          <p>Dependency Injection — czysta architektura i testowalność kodu</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-logo tech-logo--tts">🔊</div>
+          <h4>Android TTS / STT</h4>
+          <p>Natywne API głosowe — synteza i rozpoznawanie mowy po polsku</p>
+        </div>
+      </div>
+      <div class="arch-diagram">
+        <h3>Architektura aplikacji</h3>
+        <div class="arch-layers">
+          <div class="arch-layer arch-layer--ui">
+            <span class="arch-label">UI Layer</span>
+            <div class="arch-items">
+              <div class="arch-item">Dashboard</div>
+              <div class="arch-item">Kalendarz</div>
+              <div class="arch-item">Finanse</div>
+              <div class="arch-item">Lemon Voice</div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-layer arch-layer--vm">
+            <span class="arch-label">ViewModel Layer</span>
+            <div class="arch-items">
+              <div class="arch-item">CalendarViewModel</div>
+              <div class="arch-item">FinanceViewModel</div>
+              <div class="arch-item">VoiceViewModel</div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-layer arch-layer--data">
+            <span class="arch-label">Data Layer</span>
+            <div class="arch-items">
+              <div class="arch-item">EventRepository</div>
+              <div class="arch-item">FinanceRepository</div>
+              <div class="arch-item">ClaudeApiClient (Gemini)</div>
+              <div class="arch-item">KeywordMatcher</div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-layer arch-layer--db">
+            <span class="arch-label">Persistence</span>
+            <div class="arch-items">
+              <div class="arch-item">Room DB — events</div>
+              <div class="arch-item">Room DB — transactions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENS -->
+  <section class="section section--gray" id="screens">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Ekrany</span>
+        <h2>Cztery widoki,<br />jeden asystent</h2>
+        <p>Nawigacja dolna daje szybki dostęp do każdego modułu aplikacji.</p>
+      </div>
+      <div class="screens-grid">
+        <div class="screen-card">
+          <div class="screen-mockup screen-mockup--dashboard">
+            <div class="sm-header">
+              <span>🍋 Dzień dobry!</span>
+              <span class="sm-date">Środa, 14 maja</span>
+            </div>
+            <div class="sm-section">Najbliższe wydarzenia</div>
+            <div class="sm-event">
+              <div class="sm-event-dot" style="background:#FFD60A"></div>
+              <div>
+                <div class="sm-event-title">Siłownia</div>
+                <div class="sm-event-time">18:00</div>
+              </div>
+            </div>
+            <div class="sm-event">
+              <div class="sm-event-dot" style="background:#30D158"></div>
+              <div>
+                <div class="sm-event-title">Spotkanie z Jankiem</div>
+                <div class="sm-event-time">14:30</div>
+              </div>
+            </div>
+            <div class="sm-section">Saldo</div>
+            <div class="sm-balance">+ 3 000 zł</div>
+          </div>
+          <h3>Dashboard</h3>
+          <p>Przegląd dnia — wydarzenia, saldo i skróty</p>
+        </div>
+        <div class="screen-card">
+          <div class="screen-mockup screen-mockup--calendar">
+            <div class="sm-header">
+              <span>📅 Maj 2026</span>
+            </div>
+            <div class="sm-calendar-grid">
+              <div class="sm-cal-day sm-cal-head">Pn</div>
+              <div class="sm-cal-day sm-cal-head">Wt</div>
+              <div class="sm-cal-day sm-cal-head">Śr</div>
+              <div class="sm-cal-day sm-cal-head">Cz</div>
+              <div class="sm-cal-day sm-cal-head">Pt</div>
+              <div class="sm-cal-day">12</div>
+              <div class="sm-cal-day">13</div>
+              <div class="sm-cal-day sm-cal-today">14</div>
+              <div class="sm-cal-day sm-cal-event">15</div>
+              <div class="sm-cal-day">16</div>
+            </div>
+            <div class="sm-section">Maj 15</div>
+            <div class="sm-event">
+              <div class="sm-event-dot" style="background:#0A84FF"></div>
+              <div>
+                <div class="sm-event-title">Dentysta</div>
+                <div class="sm-event-time">10:00</div>
+              </div>
+            </div>
+          </div>
+          <h3>Kalendarz</h3>
+          <p>Miesięczny widok z listą wydarzeń i szybkim dodawaniem</p>
+        </div>
+        <div class="screen-card">
+          <div class="screen-mockup screen-mockup--finance">
+            <div class="sm-header">
+              <span>💰 Finanse</span>
+            </div>
+            <div class="sm-finance-balance">
+              <div class="sm-fin-label">Saldo miesięczne</div>
+              <div class="sm-fin-amount">+2 450 zł</div>
+            </div>
+            <div class="sm-section">Ostatnie transakcje</div>
+            <div class="sm-transaction sm-transaction--income">
+              <span>Wynagrodzenie</span><span>+3 000 zł</span>
+            </div>
+            <div class="sm-transaction sm-transaction--expense">
+              <span>Jedzenie</span><span>-50 zł</span>
+            </div>
+            <div class="sm-transaction sm-transaction--expense">
+              <span>Transport</span><span>-200 zł</span>
+            </div>
+          </div>
+          <h3>Finanse</h3>
+          <p>Przychody, wydatki i kategorie — zarządzane głosem</p>
+        </div>
+        <div class="screen-card">
+          <div class="screen-mockup screen-mockup--voice">
+            <div class="sm-header">
+              <span>🎙️ Lemon</span>
+              <span class="sm-status-dot"></span>
+            </div>
+            <div class="sm-voice-center">
+              <div class="sm-voice-ring sm-r1"></div>
+              <div class="sm-voice-ring sm-r2"></div>
+              <div class="sm-voice-ring sm-r3"></div>
+              <div class="sm-voice-mic">🎙</div>
+            </div>
+            <div class="sm-voice-hint">Powiedz komendę…</div>
+            <div class="sm-voice-history">
+              <div class="sm-vh-user">"Ile wydałem w tym tygodniu?"</div>
+              <div class="sm-vh-ai">W tym tygodniu wydałeś 250 zł.</div>
+            </div>
+          </div>
+          <h3>Asystent Głosowy</h3>
+          <p>Główny ekran konwersacji z AI — historia i TTS</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">
+        <span class="logo-icon">🍋</span>
+        <span class="logo-text">Lemon</span>
+      </div>
+      <p class="footer-desc">Asystent głosowy AI na Androida — zarządzaj życiem bez klikania.</p>
+      <div class="footer-tech">
+        <span>Kotlin</span>
+        <span>Jetpack Compose</span>
+        <span>Gemini AI</span>
+        <span>Room DB</span>
+        <span>Hilt</span>
+      </div>
+      <p class="footer-copy">© 2026 Projekt Lemon · SmartCalendarAI · Mateusz Majchrowski</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

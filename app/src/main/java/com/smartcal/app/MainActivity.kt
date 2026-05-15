@@ -20,6 +20,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.smartcal.app.ui.screens.*
 import com.smartcal.app.ui.theme.SmartCalendarAITheme
+import com.smartcal.app.viewmodel.AuthViewModel
 import com.smartcal.app.viewmodel.CalendarViewModel
 import com.smartcal.app.widget.WakeWordService
 import dagger.hilt.android.AndroidEntryPoint
@@ -56,6 +57,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainAppContent(startDestination: String = "dashboard", pendingVoiceCommand: String? = null) {
+    val authVm: AuthViewModel = hiltViewModel()
+    val user by authVm.user.collectAsState()
+
+    if (user == null) {
+        AuthScreen(vm = authVm)
+        return
+    }
+
     val navController = rememberNavController()
     val calVm: CalendarViewModel = hiltViewModel()
 

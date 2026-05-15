@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lemon — Panel użytkownika</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="webapp.css" />
+</head>
+<body class="webapp-body">
+
+  <!-- ========== AUTH VIEW ========== -->
+  <div id="auth-view" class="auth-view">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span>🍋</span>
+        <h1>Lemon</h1>
+        <p>Zaloguj się, by uzyskać dostęp do swoich danych</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Zaloguj się</button>
+        <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Zarejestruj się</button>
+      </div>
+
+      <form id="auth-form" class="auth-form" onsubmit="handleAuth(event)">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email-input" placeholder="twoj@email.com" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>Hasło</label>
+          <input type="password" id="password-input" placeholder="••••••••" required autocomplete="current-password" minlength="6" />
+        </div>
+        <div id="auth-error" class="auth-error" style="display:none"></div>
+        <button type="submit" class="auth-submit" id="auth-btn">
+          <span id="auth-btn-text">Zaloguj się</span>
+          <span id="auth-spinner" class="spinner" style="display:none"></span>
+        </button>
+      </form>
+
+      <p class="auth-switch" id="auth-switch-text">
+        Nie masz konta? <a href="#" onclick="switchTab('register'); return false">Zarejestruj się</a>
+      </p>
+
+      <a href="index.html" class="auth-back">← Wróć na stronę główną</a>
+    </div>
+  </div>
+
+  <!-- ========== APP VIEW ========== -->
+  <div id="app-view" class="app-view" style="display:none">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <span>🍋</span>
+        <span>Lemon</span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="sn-item active" onclick="showSection('dashboard')" id="nav-dashboard">
+          <span class="sn-icon">🏠</span> Dashboard
+        </button>
+        <button class="sn-item" onclick="showSection('events')" id="nav-events">
+          <span class="sn-icon">📅</span> Kalendarz
+        </button>
+        <button class="sn-item" onclick="showSection('finance')" id="nav-finance">
+          <span class="sn-icon">💰</span> Finanse
+        </button>
+      </nav>
+      <div class="sidebar-user">
+        <div class="user-avatar">🍋</div>
+        <div class="user-info">
+          <span id="user-email-display" class="user-email"></span>
+          <button class="logout-btn" onclick="handleLogout()">Wyloguj</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="app-main">
+
+      <!-- Dashboard -->
+      <section id="section-dashboard" class="app-section">
+        <h2 class="section-title">Dashboard</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div>
+              <div class="stat-value" id="stat-events">—</div>
+              <div class="stat-label">Wydarzeń łącznie</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💳</div>
+            <div>
+              <div class="stat-value" id="stat-transactions">—</div>
+              <div class="stat-label">Transakcji łącznie</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div>
+              <div class="stat-value" id="stat-balance">—</div>
+              <div class="stat-label">Saldo (wszystkie)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-cols">
+          <div class="dash-col">
+            <h3>Najbliższe wydarzenia</h3>
+            <div id="upcoming-events" class="list-placeholder">Ładowanie…</div>
+          </div>
+          <div class="dash-col">
+            <h3>Ostatnie transakcje</h3>
+            <div id="recent-transactions" class="list-placeholder">Ładowanie…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Events -->
+      <section id="section-events" class="app-section" style="display:none">
+        <div class="section-header-row">
+          <h2 class="section-title">Kalendarz</h2>
+          <button class="add-btn" onclick="openModal('event')">+ Dodaj wydarzenie</button>
+        </div>
+        <div id="events-list" class="data-list">Ładowanie…</div>
+      </section>
+
+      <!-- Finance -->
+      <section id="section-finance" class="app-section" style="display:none">
+        <div class="section-header-row">
+          <h2 class="section-title">Finanse</h2>
+          <button class="add-btn" onclick="openModal('finance')">+ Dodaj transakcję</button>
+        </div>
+        <div class="finance-summary" id="finance-summary"></div>
+        <div id="finance-list" class="data-list">Ładowanie…</div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========== MODALS ========== -->
+
+  <!-- Event modal -->
+  <div id="modal-event" class="modal-overlay" style="display:none" onclick="closeModalOnOverlay(event,'modal-event')">
+    <div class="modal-card">
+      <h3>Nowe wydarzenie</h3>
+      <form onsubmit="saveEvent(event)">
+        <div class="form-group">
+          <label>Tytuł</label>
+          <input type="text" id="ev-title" required placeholder="np. Siłownia" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Data i godzina (od)</label>
+            <input type="datetime-local" id="ev-start" required />
+          </div>
+          <div class="form-group">
+            <label>Data i godzina (do)</label>
+            <input type="datetime-local" id="ev-end" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Kategoria</label>
+          <select id="ev-category">
+            <option value="PERSONAL">Osobiste</option>
+            <option value="WORK">Praca</option>
+            <option value="HEALTH">Zdrowie</option>
+            <option value="SOCIAL">Towarzyskie</option>
+            <option value="HABIT">Nawyk</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notatka</label>
+          <input type="text" id="ev-notes" placeholder="Opcjonalna notatka" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal('modal-event')">Anuluj</button>
+          <button type="submit" class="btn-save">Zapisz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Finance modal -->
+  <div id="modal-finance" class="modal-overlay" style="display:none" onclick="closeModalOnOverlay(event,'modal-finance')">
+    <div class="modal-card">
+      <h3>Nowa transakcja</h3>
+      <form onsubmit="saveTransaction(event)">
+        <div class="form-group">
+          <label>Tytuł</label>
+          <input type="text" id="tx-title" required placeholder="np. Jedzenie" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Kwota (zł)</label>
+            <input type="number" id="tx-amount" required min="0.01" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label>Typ</label>
+            <select id="tx-type">
+              <option value="EXPENSE">Wydatek</option>
+              <option value="INCOME">Przychód</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Kategoria</label>
+            <select id="tx-category">
+              <option value="FOOD">Jedzenie</option>
+              <option value="FUEL">Paliwo</option>
+              <option value="WORK">Praca / Przychód</option>
+              <option value="GAMBLING">Hazard</option>
+              <option value="OTHER">Inne</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="tx-date" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notatka</label>
+          <input type="text" id="tx-note" placeholder="Opcjonalna notatka" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal('modal-finance')">Anuluj</button>
+          <button type="submit" class="btn-save">Zapisz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut }
+      from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+    import { getFirestore, collection, doc, addDoc, getDocs, deleteDoc, orderBy, query, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+    // ─── KONFIGURACJA FIREBASE ─────────────────────────────────────────────
+    // Wklej tutaj dane swojego projektu Firebase (plik webapp.html → firebaseConfig)
+    const firebaseConfig = {
+      apiKey:            "AIzaSyAUmFd7ZBhXCnaAqwXiRi4bqT721-OcN0E",
+      authDomain:        "lemon-d5495.firebaseapp.com",
+      projectId:         "lemon-d5495",
+      storageBucket:     "lemon-d5495.firebasestorage.app",
+      messagingSenderId: "998092363577",
+      appId:             "1:998092363577:web:14023264247c528d6c3ae8"
+    };
+    // ──────────────────────────────────────────────────────────────────────
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    let currentUser = null;
+    let allEvents = [];
+    let allTransactions = [];
+    let currentTab = 'login';
+
+    // ─── AUTH ─────────────────────────────────────────────────────────────
+
+    window.switchTab = (tab) => {
+      currentTab = tab;
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+      document.getElementById('auth-btn-text').textContent = tab === 'login' ? 'Zaloguj się' : 'Utwórz konto';
+      document.getElementById('auth-switch-text').innerHTML = tab === 'login'
+        ? 'Nie masz konta? <a href="#" onclick="switchTab(\'register\'); return false">Zarejestruj się</a>'
+        : 'Masz konto? <a href="#" onclick="switchTab(\'login\'); return false">Zaloguj się</a>';
+      clearAuthError();
+    };
+
+    window.handleAuth = async (e) => {
+      e.preventDefault();
+      const email    = document.getElementById('email-input').value.trim();
+      const password = document.getElementById('password-input').value;
+      setAuthLoading(true);
+      clearAuthError();
+      try {
+        if (currentTab === 'login') {
+          await signInWithEmailAndPassword(auth, email, password);
+        } else {
+          await createUserWithEmailAndPassword(auth, email, password);
+        }
+      } catch (err) {
+        showAuthError(mapError(err.code));
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    window.handleLogout = async () => {
+      await signOut(auth);
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      if (user) {
+        document.getElementById('auth-view').style.display = 'none';
+        document.getElementById('app-view').style.display  = 'flex';
+        document.getElementById('user-email-display').textContent = user.email;
+        loadAllData();
+      } else {
+        document.getElementById('auth-view').style.display = 'flex';
+        document.getElementById('app-view').style.display  = 'none';
+      }
+    });
+
+    // ─── DATA LOADING ─────────────────────────────────────────────────────
+
+    async function loadAllData() {
+      await Promise.all([loadEvents(), loadTransactions()]);
+      renderDashboard();
+    }
+
+    async function loadEvents() {
+      const uid = currentUser.uid;
+      const q = query(collection(db, `users/${uid}/events`), orderBy('startEpoch', 'asc'));
+      const snap = await getDocs(q).catch(() => getDocs(collection(db, `users/${uid}/events`)));
+      allEvents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderEvents();
+    }
+
+    async function loadTransactions() {
+      const uid = currentUser.uid;
+      const q = query(collection(db, `users/${uid}/transactions`), orderBy('dateEpoch', 'desc'));
+      const snap = await getDocs(q).catch(() => getDocs(collection(db, `users/${uid}/transactions`)));
+      allTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderTransactions();
+    }
+
+    // ─── RENDER ───────────────────────────────────────────────────────────
+
+    function renderDashboard() {
+      document.getElementById('stat-events').textContent = allEvents.length;
+      document.getElementById('stat-transactions').textContent = allTransactions.length;
+      const balance = allTransactions.reduce((sum, tx) =>
+        sum + (tx.type === 'INCOME' ? tx.amount : -tx.amount), 0);
+      const formatted = (balance >= 0 ? '+' : '') + balance.toFixed(2) + ' zł';
+      const balEl = document.getElementById('stat-balance');
+      balEl.textContent = formatted;
+      balEl.style.color = balance >= 0 ? 'var(--green)' : 'var(--red)';
+
+      const now = Date.now();
+      const upcoming = allEvents.filter(e => e.startEpoch > now).slice(0, 5);
+      document.getElementById('upcoming-events').innerHTML = upcoming.length
+        ? upcoming.map(e => eventRow(e)).join('')
+        : '<p class="empty-state">Brak nadchodzących wydarzeń</p>';
+
+      const recent = allTransactions.slice(0, 5);
+      document.getElementById('recent-transactions').innerHTML = recent.length
+        ? recent.map(t => txRow(t)).join('')
+        : '<p class="empty-state">Brak transakcji</p>';
+    }
+
+    function renderEvents() {
+      const el = document.getElementById('events-list');
+      if (!allEvents.length) { el.innerHTML = '<p class="empty-state">Brak wydarzeń. Dodaj pierwsze wydarzenie!</p>'; return; }
+      el.innerHTML = allEvents.map(e => `
+        <div class="data-row">
+          <div class="dr-left">
+            <span class="dr-icon">${categoryEmoji(e.category)}</span>
+            <div>
+              <div class="dr-title">${esc(e.title)}</div>
+              <div class="dr-meta">${fmtEpoch(e.startEpoch)} — ${fmtEpoch(e.endEpoch)}</div>
+              ${e.notes ? `<div class="dr-note">${esc(e.notes)}</div>` : ''}
+            </div>
+          </div>
+          <button class="dr-delete" onclick="deleteEvent('${e.id}')" title="Usuń">🗑</button>
+        </div>`).join('');
+    }
+
+    function renderTransactions() {
+      const income   = allTransactions.filter(t => t.type === 'INCOME').reduce((s,t) => s+t.amount, 0);
+      const expenses = allTransactions.filter(t => t.type === 'EXPENSE').reduce((s,t) => s+t.amount, 0);
+      document.getElementById('finance-summary').innerHTML = `
+        <div class="fin-stat fin-income"><span>Przychody</span><strong>+${income.toFixed(2)} zł</strong></div>
+        <div class="fin-stat fin-expense"><span>Wydatki</span><strong>-${expenses.toFixed(2)} zł</strong></div>
+        <div class="fin-stat fin-balance"><span>Saldo</span><strong style="color:${income-expenses>=0?'var(--green)':'var(--red)'}">${(income-expenses>=0?'+':'')+(income-expenses).toFixed(2)} zł</strong></div>`;
+
+      const el = document.getElementById('finance-list');
+      if (!allTransactions.length) { el.innerHTML = '<p class="empty-state">Brak transakcji. Dodaj pierwszą!</p>'; return; }
+      el.innerHTML = allTransactions.map(t => txRow(t, true)).join('');
+    }
+
+    function eventRow(e) {
+      return `<div class="mini-row"><span>${categoryEmoji(e.category)} <strong>${esc(e.title)}</strong></span><span class="mini-time">${fmtEpoch(e.startEpoch)}</span></div>`;
+    }
+
+    function txRow(t, withDelete = false) {
+      const sign = t.type === 'INCOME' ? '+' : '-';
+      const cls  = t.type === 'INCOME' ? 'income' : 'expense';
+      return `
+        <div class="data-row">
+          <div class="dr-left">
+            <span class="dr-icon">${txEmoji(t.category)}</span>
+            <div>
+              <div class="dr-title">${esc(t.title)}</div>
+              <div class="dr-meta">${fmtDate(t.dateEpoch)} · ${txCategoryLabel(t.category)}</div>
+              ${t.note ? `<div class="dr-note">${esc(t.note)}</div>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="dr-amount ${cls}">${sign}${parseFloat(t.amount).toFixed(2)} zł</span>
+            ${withDelete ? `<button class="dr-delete" onclick="deleteTransaction('${t.id}')" title="Usuń">🗑</button>` : ''}
+          </div>
+        </div>`;
+    }
+
+    // ─── CRUD ─────────────────────────────────────────────────────────────
+
+    window.saveEvent = async (e) => {
+      e.preventDefault();
+      const uid   = currentUser.uid;
+      const start = new Date(document.getElementById('ev-start').value).getTime();
+      const end   = new Date(document.getElementById('ev-end').value).getTime();
+      const data = {
+        title:         document.getElementById('ev-title').value.trim(),
+        startEpoch:    start,
+        endEpoch:      end,
+        category:      document.getElementById('ev-category').value,
+        isAiSuggested: false,
+        notes:         document.getElementById('ev-notes').value.trim()
+      };
+      await addDoc(collection(db, `users/${uid}/events`), data);
+      closeModal('modal-event');
+      await loadEvents();
+      renderDashboard();
+    };
+
+    window.saveTransaction = async (e) => {
+      e.preventDefault();
+      const uid = currentUser.uid;
+      const dateMs = new Date(document.getElementById('tx-date').value + 'T00:00:00').getTime();
+      const data = {
+        title:     document.getElementById('tx-title').value.trim(),
+        amount:    parseFloat(document.getElementById('tx-amount').value),
+        type:      document.getElementById('tx-type').value,
+        category:  document.getElementById('tx-category').value,
+        dateEpoch: dateMs,
+        note:      document.getElementById('tx-note').value.trim()
+      };
+      await addDoc(collection(db, `users/${uid}/transactions`), data);
+      closeModal('modal-finance');
+      await loadTransactions();
+      renderDashboard();
+    };
+
+    window.deleteEvent = async (id) => {
+      if (!confirm('Usunąć to wydarzenie?')) return;
+      await deleteDoc(doc(db, `users/${currentUser.uid}/events/${id}`));
+      await loadEvents();
+      renderDashboard();
+    };
+
+    window.deleteTransaction = async (id) => {
+      if (!confirm('Usunąć tę transakcję?')) return;
+      await deleteDoc(doc(db, `users/${currentUser.uid}/transactions/${id}`));
+      await loadTransactions();
+      renderDashboard();
+    };
+
+    // ─── UI HELPERS ───────────────────────────────────────────────────────
+
+    window.showSection = (name) => {
+      ['dashboard','events','finance'].forEach(s => {
+        document.getElementById(`section-${s}`).style.display = s === name ? 'block' : 'none';
+        document.getElementById(`nav-${s}`).classList.toggle('active', s === name);
+      });
+    };
+
+    window.openModal = (type) => {
+      if (type === 'event') {
+        const now = new Date(); now.setMinutes(0,0,0);
+        const end = new Date(now.getTime() + 3600000);
+        document.getElementById('ev-start').value = toDatetimeLocal(now);
+        document.getElementById('ev-end').value   = toDatetimeLocal(end);
+        document.getElementById('ev-title').value = '';
+        document.getElementById('ev-notes').value = '';
+      } else {
+        document.getElementById('tx-date').value   = new Date().toISOString().slice(0,10);
+        document.getElementById('tx-title').value  = '';
+        document.getElementById('tx-amount').value = '';
+        document.getElementById('tx-note').value   = '';
+      }
+      document.getElementById(`modal-${type}`).style.display = 'flex';
+    };
+
+    window.closeModal = (id) => { document.getElementById(id).style.display = 'none'; };
+    window.closeModalOnOverlay = (e, id) => { if (e.target.id === id) closeModal(id); };
+
+    function toDatetimeLocal(d) {
+      return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    }
+
+    function fmtEpoch(ms) {
+      if (!ms) return '—';
+      return new Date(ms).toLocaleString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    }
+
+    function fmtDate(ms) {
+      if (!ms) return '—';
+      return new Date(ms).toLocaleDateString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric'});
+    }
+
+    function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function categoryEmoji(c) {
+      return {WORK:'💼',HEALTH:'💪',PERSONAL:'🏠',HABIT:'🔄',SOCIAL:'👥'}[c] || '📌';
+    }
+    function txEmoji(c) {
+      return {WORK:'💰',FOOD:'🍔',FUEL:'⛽',GAMBLING:'🎰',OTHER:'📦'}[c] || '💳';
+    }
+    function txCategoryLabel(c) {
+      return {WORK:'Praca',FOOD:'Jedzenie',FUEL:'Paliwo',GAMBLING:'Hazard',OTHER:'Inne'}[c] || c;
+    }
+
+    function mapError(code) {
+      const m = {
+        'auth/user-not-found': 'Nie znaleziono konta',
+        'auth/wrong-password': 'Nieprawidłowe hasło',
+        'auth/email-already-in-use': 'Ten email jest już zajęty',
+        'auth/invalid-email': 'Nieprawidłowy adres email',
+        'auth/weak-password': 'Hasło musi mieć co najmniej 6 znaków',
+        'auth/network-request-failed': 'Brak połączenia z internetem',
+        'auth/invalid-credential': 'Nieprawidłowy email lub hasło'
+      };
+      return m[code] || 'Błąd logowania. Spróbuj ponownie.';
+    }
+
+    function setAuthLoading(loading) {
+      document.getElementById('auth-btn').disabled = loading;
+      document.getElementById('auth-btn-text').style.display = loading ? 'none' : 'inline';
+      document.getElementById('auth-spinner').style.display  = loading ? 'inline-block' : 'none';
+    }
+
+    function showAuthError(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function clearAuthError() {
+      document.getElementById('auth-error').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

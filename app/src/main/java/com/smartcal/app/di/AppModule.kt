@@ -2,6 +2,8 @@ package com.smartcal.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.smartcal.app.data.local.AppDatabase
 import com.smartcal.app.data.local.EventDao
 import com.smartcal.app.data.local.TransactionDao
@@ -27,6 +29,12 @@ object AppModule {
 
     @Provides fun provideEventDao(db: AppDatabase): EventDao = db.eventDao()
     @Provides fun provideTransactionDao(db: AppDatabase): TransactionDao = db.transactionDao()
+
+    @Provides @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+
+    @Provides @Singleton
+    fun provideFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
 
     @Provides @Singleton
     fun provideOkHttpClient(): OkHttpClient =
